@@ -7,7 +7,7 @@ import { UpdateTodoRequest } from '../types/UpdateTodoRequest';
 export async function getAllMail(idToken: string): Promise<MailItem[]> {
   console.log('Fetching todos')
 
-  const response = await Axios.get(`${apiEndpoint}/todos`, {
+  const response = await Axios.get(`${apiEndpoint}/mail-items`, {
     headers: {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${idToken}`

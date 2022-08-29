@@ -11,7 +11,11 @@ import {
   Icon,
   Input,
   Image,
-  Loader
+  Loader,
+  Segment,
+  Modal,
+  Form,
+  TextArea
 } from 'semantic-ui-react'
 
 import { createTodo, deleteTodo, getAllMail, patchTodo } from '../api/todos-api'
@@ -26,12 +30,14 @@ interface MailsProps {
 interface MailsState {
   mails: MailItem[]
   loadingMails: boolean
+  showModal: boolean
 }
 
 export class Mails extends React.PureComponent<MailsProps, MailsState> {
   state: MailsState = {
     mails: [],
-    loadingMails: true
+    loadingMails: true,
+    showModal: false
   }
 
 
@@ -99,12 +105,57 @@ export class Mails extends React.PureComponent<MailsProps, MailsState> {
   render() {
     return (
       <div>
-        <Header as="h1">TODOs</Header>
+        <Header as="h1">Mail-Send a message for the future</Header>
 
         {this.renderCreateTodoInput()}
-
+        {this.renderModalCreate()}
         {this.renderTodos()}
       </div>
+    )
+  }
+
+
+  renderModalCreate() {
+    return (
+      <Modal
+        onClose={() => this.setState({
+          mails: this.state.mails,
+          loadingMails: this.state.loadingMails,
+          showModal: false
+        })}
+        onOpen={() => this.setState({
+          mails: this.state.mails,
+          loadingMails: this.state.loadingMails,
+          showModal: true
+        })}
+        open={this.state.showModal}
+      >
+        <Modal.Header>Create new Mail Item</Modal.Header>
+        <Modal.Content as={Form}>
+          <Form onSubmit={() => {
+            //TODO: add 
+
+          }}>
+            <Form.Field>
+              <label>Title</label>
+              <input placeholder='Title' />
+            </Form.Field>
+            <Form.Field>
+              <label>To Email</label>
+              <input placeholder='Choose destination email...' />
+            </Form.Field>
+            <Form.Field
+              control={TextArea}
+              label='Message'
+              placeholder='Message for the future'
+            />
+            <Form.Button type='submit'
+              icon='checkmark'
+              positive>Create
+            </Form.Button>
+          </Form>
+        </Modal.Content>
+      </Modal>
     )
   }
 
@@ -112,19 +163,13 @@ export class Mails extends React.PureComponent<MailsProps, MailsState> {
     return (
       <Grid.Row>
         <Grid.Column width={16}>
-          <Input
-            action={{
-              color: 'teal',
-              labelPosition: 'left',
-              icon: 'add',
-              content: 'New task',
-              onClick: ()=>{}
-            }}
-            fluid
-            actionPosition="left"
-            placeholder="To change the world..."
-            onChange={()=>{}}
-          />
+          <Button primary icon='add' onClick={() => {
+            this.setState({
+              mails: this.state.mails,
+              loadingMails: this.state.loadingMails,
+              showModal: true
+            })
+          }}>Add new mail message here !</Button>
         </Grid.Column>
         <Grid.Column width={16}>
           <Divider />
@@ -154,45 +199,73 @@ export class Mails extends React.PureComponent<MailsProps, MailsState> {
   renderTodosList() {
     return (
       <Grid padded>
+        <Grid.Row divided>
+
+          <Grid.Column width={4} verticalAlign="middle">
+            <strong>Title</strong>
+          </Grid.Column>
+          <Grid.Column width={9} floated="right">
+            Content
+          </Grid.Column>
+          <Grid.Column width={2} floated="right">
+            Action
+          </Grid.Column>
+        </Grid.Row>
+        <Divider section />
         {this.state.mails.map((mail, pos) => {
           return (
-            <Grid.Row key={mail.itemId}>
-              
-              <Grid.Column width={10} verticalAlign="middle">
-                {mail.title}
-              </Grid.Column>
-              <Grid.Column width={3} floated="right">
-                {mail.content}
-              </Grid.Column>
-              <Grid.Column width={1} floated="right">
-                <Button
-                  icon
-                  color="blue"
-                  onClick={() => this.onEditButtonClick(mail.itemId)}
-                >
-                  <Icon name="pencil" />
-                </Button>
-              </Grid.Column>
-              <Grid.Column width={1} floated="right">
-                <Button
-                  icon
-                  color="red"
-                  onClick={() => {}}
-                >
-                  <Icon name="delete" />
-                </Button>
-              </Grid.Column>
-              {mail.attachmentUrl && (
-                <Image src={mail.attachmentUrl} size="small" wrapped />
-              )}
-              <Grid.Column width={16}>
-                <Divider />
-              </Grid.Column>
-            </Grid.Row>
+            <>
+              <Grid.Row key={mail.itemId} divided>
+
+                <Grid.Column width={4} verticalAlign="middle">
+                  <strong>{mail.title}</strong>
+                  <br />
+                  To : {mail.mailDestination}
+                  <br />
+                  Date expected : {mail.sendDate.replaceAll("Z", "")}
+                </Grid.Column>
+                <Grid.Column width={9} floated="right">
+                  {mail.content}
+                </Grid.Column>
+                <Grid.Column width={2} floated="right">
+                  <Button
+                    icon
+                    color="blue"
+                    onClick={() => this.onEditButtonClick(mail.itemId)}
+                  >
+                    <Icon name="pencil" />
+                  </Button>
+                  <Button
+                    icon
+                    color="red"
+                    onClick={() => { }}
+                  >
+                    <Icon name="delete" />
+                  </Button>
+                </Grid.Column>
+                {this.showAttachment(mail.sendWithAttachment, mail.attachmentUrl)}
+              </Grid.Row>
+              <Divider section />
+            </>
           )
         })}
       </Grid>
     )
+  }
+
+  showAttachment(attachment: boolean, attachmentUrl: string) {
+    if (!attachment || !attachmentUrl) {
+      return <></>
+    }
+    const splited = attachmentUrl.split(".");
+    const extension = splited[splited.length - 1];
+    console.log(extension)
+    if (extension === "jpg" || extension === "jpeg" || extension === "png") {
+      return <Image src={attachmentUrl} size="small" wrapped />
+    }
+    return <Segment>
+      <strong>Attachment URL: </strong> <a href={attachmentUrl}>{attachmentUrl}</a>
+    </Segment>
   }
 
   calculateDueDate(): string {
