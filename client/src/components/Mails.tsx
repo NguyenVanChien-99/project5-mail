@@ -27,17 +27,34 @@ interface MailsProps {
   history: History
 }
 
+interface MailCreate {
+  title: string
+  content: string
+  sendDate: string
+  mailReceive: string
+  sendWithAttachment: boolean
+  file?: any
+}
+
 interface MailsState {
   mails: MailItem[]
   loadingMails: boolean
   showModal: boolean
+  mailCreate: MailCreate
 }
 
 export class Mails extends React.PureComponent<MailsProps, MailsState> {
   state: MailsState = {
     mails: [],
     loadingMails: true,
-    showModal: false
+    showModal: false,
+    mailCreate:{
+      content:"",
+      mailReceive:"",
+      sendDate:"",
+      sendWithAttachment:false,
+      title:""
+    }
   }
 
 
@@ -138,7 +155,11 @@ export class Mails extends React.PureComponent<MailsProps, MailsState> {
           }}>
             <Form.Field>
               <label>Title</label>
-              <input placeholder='Title' />
+              <input placeholder='Title' value={this.state.mailCreate.title}
+                onChange={(e)=>{
+                    console.log(e)
+                }}
+              />
             </Form.Field>
             <Form.Field>
               <label>To Email</label>
@@ -149,10 +170,25 @@ export class Mails extends React.PureComponent<MailsProps, MailsState> {
               label='Message'
               placeholder='Message for the future'
             />
+            <Form.Field>
+              <label>Date and Time expected</label>
+              <input placeholder='yyyy-MM-ddThh:mm:ss' />
+            </Form.Field>
+            <input
+              type="file"
+              accept="image/*"
+              placeholder="Image to upload"
+              onChange={()=>{
+
+              }}
+            />
             <Form.Button type='submit'
               icon='checkmark'
               positive>Create
             </Form.Button>
+            <span>*Note 1: When you put the new email, please help me verify it (aws will send you an email). Because this account is under SandBox. More infomation <a href='https://docs.aws.amazon.com/ses/latest/dg/request-production-access.html'>SandBox</a></span>
+            <br/>
+            <span>*Note 2: Mail will be send for 5 minutes late</span>
           </Form>
         </Modal.Content>
       </Modal>
