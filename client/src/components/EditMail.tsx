@@ -58,7 +58,7 @@ export class EditMailItem extends React.PureComponent<
   render() {
     return (
       <div>
-        <h1>Upload new image</h1>
+        <h1>Update Mail Item</h1>
 
         <Form onSubmit={async() => {
             try {
