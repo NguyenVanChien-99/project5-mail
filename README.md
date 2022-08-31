@@ -81,10 +81,6 @@ logger.info('User was authorized', {
 
 You don't have to config any more in this section, it's running in lambda !
 
-## Postman colloction
-
-![](Udacity Project 5 -Chiennv16.postman_collection.json)
-
 ## Frontend
 
 To run a client application first edit the `client/src/config.ts` file to set correct parameters. And then run the following commands:
