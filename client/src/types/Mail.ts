@@ -8,4 +8,5 @@ export interface MailItem {
   sendWithAttachment: boolean
   attachmentUrl: string
   status: string
+  presignedUrl?: string
 }

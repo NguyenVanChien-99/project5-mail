@@ -3,6 +3,7 @@ const AWSXRay = require('aws-xray-sdk');
 import { DocumentClient } from 'aws-sdk/clients/dynamodb'
 import { createLogger } from '../utils/logger'
 import { MailItem } from '../models/MailItem';
+import { MailUpdate } from '../models/MailUpdate';
 
 const XAWS = AWSXRay.captureAWS(AWS)
 const logger = createLogger('MailsAccess')
@@ -14,12 +15,12 @@ export class MailItemAccess {
         private readonly mailsTable = process.env.MAILS_TABLE) {
     }
 
-    async getTodoById(itemId: String,userId :String): Promise<MailItem> {
+    async getTodoById(itemId: String, userId: String): Promise<MailItem> {
         logger.info("Get mail item by id from dynamodb");
 
         const result = await this.docClient.get({
             TableName: this.mailsTable,
-            Key:{
+            Key: {
                 "itemId": itemId,
                 "userId": userId
             },
@@ -33,7 +34,7 @@ export class MailItemAccess {
         return items as MailItem
     }
 
-    async getAllMailItems(userId:string): Promise<MailItem[]> {
+    async getAllMailItems(userId: string): Promise<MailItem[]> {
         logger.info("Get all mail items from dynamodb");
 
         const result = await this.docClient.query({
@@ -48,17 +49,17 @@ export class MailItemAccess {
         return items as MailItem[]
     }
 
-    async getAllMailItemsByTime(dateTime:Date): Promise<MailItem[]> {
+    async getAllMailItemsByTime(dateTime: Date): Promise<MailItem[]> {
         logger.info("Get all mail items that still not send from dynamodb");
         logger.info(`Start time : ${dateTime.toISOString()}`)
-        const ft = new Date(dateTime.getTime()+5*60*1000) // add 5 minutes
+        const ft = new Date(dateTime.getTime() + 5 * 60 * 1000) // add 5 minutes
 
         const result = await this.docClient.scan({
             TableName: this.mailsTable,
             FilterExpression: 'sendDate between :date1 and :date2',
             ExpressionAttributeValues: {
-                ':date1': dateTime.toISOString().replace('.000',''),
-                ':date2': ft.toISOString().replace('.000','')
+                ':date1': dateTime.toISOString().replace('.000', ''),
+                ':date2': ft.toISOString().replace('.000', '')
             }
         }).promise()
 
@@ -66,7 +67,25 @@ export class MailItemAccess {
         return items as MailItem[]
     }
 
-    async getAllMailByEmail(mailReceive:string): Promise<MailItem[]> {
+
+    async search(userId: string, keyword: string): Promise<MailItem[]> {
+        logger.info(`Search mail items : ${userId}, key: ${keyword}`);
+
+        const result = await this.docClient.query({
+            TableName: this.mailsTable,
+            KeyConditionExpression: 'userId = :userId',
+            FilterExpression: ' contains(content, :key) or contains (title, :key) or contains (mailDestination,:key)',
+            ExpressionAttributeValues: {
+                ':key': keyword,
+                ':userId': userId
+            }
+        }).promise()
+
+        const items = result.Items
+        return items as MailItem[]
+    }
+
+    async getAllMailByEmail(mailReceive: string): Promise<MailItem[]> {
 
         const result = await this.docClient.scan({
             TableName: this.mailsTable,
@@ -74,8 +93,8 @@ export class MailItemAccess {
             ExpressionAttributeValues: {
                 ':mail': mailReceive,
             },
-            ExpressionAttributeNames:{
-                '#mailDestination':'mailDestination'
+            ExpressionAttributeNames: {
+                '#mailDestination': 'mailDestination'
             }
         }).promise()
 
@@ -84,11 +103,34 @@ export class MailItemAccess {
     }
 
 
+    async updateItem(itemId: String,userId :String, item: MailUpdate) {
+        logger.info(`Update mail item to dynamodb ${itemId}`, item);
+        await this.docClient.update({
+            TableName: this.mailsTable,
+            Key: {
+                "itemId": itemId,
+                "userId": userId
+            },
+            UpdateExpression: "set title = :title , content = :content",
+            ExpressionAttributeValues: {
+                ":title": item.title,
+                ":content": item.content,
+            },
+            ReturnValues: "UPDATED_NEW"
+        }).promise()
+
+        return 
+    }
+
     async createMail(mail: MailItem): Promise<MailItem> {
         logger.info("Save mail item to dynamodb", JSON.stringify(mail));
         try {
             const date = new Date(mail.sendDate)
-            mail.sendDate= date.toISOString().replace('.000','')
+            if(date<=new Date()){
+                logger.error(`sendDate must after current time`)
+                throw new Error(`sendDate must after current time`)
+            }
+            mail.sendDate = date.toISOString().replace('.000', '')
         } catch (error) {
             throw new Error(`Invalid sendDate , error ${error}`)
         }
@@ -100,9 +142,9 @@ export class MailItemAccess {
         return mail
     }
 
-   
 
-    async updateMailStatus(mailId:string,userId:string, status:string) {
+
+    async updateMailStatus(mailId: string, userId: string, status: string) {
         logger.info(`Update mail status ${mailId}`);
         await this.docClient.update({
             TableName: this.mailsTable,
@@ -114,16 +156,16 @@ export class MailItemAccess {
             ExpressionAttributeValues: {
                 ":status": status,
             },
-            ExpressionAttributeNames:{
-              "#status": "status"
+            ExpressionAttributeNames: {
+                "#status": "status"
             },
             ReturnValues: "UPDATED_NEW"
         }).promise()
 
-        return 
+        return
     }
 
-    async deleteMail(itemId :string,userId :String){
+    async deleteMail(itemId: string, userId: String) {
         logger.info(`Start delete mail item from dynamodb `)
         await this.docClient.delete({
             TableName: this.mailsTable,

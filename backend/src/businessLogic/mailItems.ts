@@ -1,11 +1,13 @@
 import { createLogger } from '../utils/logger'
 import * as uuid from 'uuid'
-import { MailItemAccess } from '../dataLayer/todosAcess'
+import { MailItemAccess } from '../dataLayer/mailsAcess'
 import { MailItem } from '../models/MailItem'
 import { CreateMailItemRequest } from '../requests/CreateMailRequest'
 import { generatePresignedUrl, getAttachmentUrl } from '../dataLayer/attachmentUtils'
 import { CreateMailItemResponse } from '../responses/CreateMailResponse'
 import { sendEmail, verifyEmailAddress } from '../dataLayer/mailService'
+import { UpdateMailRequest } from '../requests/UpdateMailRequest'
+import { MailUpdate } from '../models/MailUpdate'
 
 
 const mailItemAccess = new MailItemAccess();
@@ -13,6 +15,10 @@ const logger = createLogger("mailItems")
 
 export async function getAllMailItemsByUser(userId:string): Promise<MailItem[]> {
   return mailItemAccess.getAllMailItems(userId);
+}
+
+export async function searchMailItemsByUser(userId:string,keyword:string): Promise<MailItem[]> {
+  return mailItemAccess.search(userId,keyword);
 }
 
 export async function createMail(
@@ -78,6 +84,14 @@ export async function deleteMail(
 }
 
 
+export async function getMailById(
+  itemId :string,
+  userId: string
+) {
+    return mailItemAccess.getTodoById(itemId,userId)
+}
+
+
 export async function sendMailPending() {
   logger.info("Start get all pending email in 5 minutes")
   try {
@@ -88,7 +102,7 @@ export async function sendMailPending() {
       }
       try {
         logger.info(`Start send mail : ${JSON.stringify(mail[i])}`)
-        await sendEmail(mail[i].mailDestination,mail[i].title,mail[i].content)
+        await sendEmail(mail[i].mailDestination,mail[i].title,mail[i].content,mail[i].attachmentUrl,mail[i].sendWithAttachment)
         await mailItemAccess.updateMailStatus(mail[i].itemId,mail[i].userId,"SUCCESS")
       } catch (mailErr) {
         logger.error(`Fail to to send mail : ${JSON.stringify(mail[i])}, error ${mailErr}`)
@@ -101,3 +115,16 @@ export async function sendMailPending() {
   }
 }
 
+export async function updateMail(
+  itemId :string,
+  userId: string,
+  updatedItem :UpdateMailRequest
+) {
+    const item = mailItemAccess.getTodoById(itemId,userId)
+    logger.info(`Update item :${JSON.stringify(item)}`)
+    if((await item).userId!==userId){
+      logger.error(`User ${userId} cannot perform this action`)
+      throw new Error(`User ${userId} cannot perform this action`)
+    }
+    await mailItemAccess.updateItem(itemId,userId,updatedItem as MailUpdate)
+}

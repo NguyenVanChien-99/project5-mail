@@ -97,7 +97,7 @@ export default class App extends Component<AppProps, AppState> {
         />
 
         <Route
-          path="/mail/:itemId/edit"
+          path="/mails/:itemId/edit"
           exact
           render={props => {
             return <EditMailItem {...props} auth={this.props.auth} />

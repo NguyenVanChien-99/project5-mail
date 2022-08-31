@@ -23,7 +23,7 @@ provider:
   environment:
     MAILS_TABLE: Todos-${self:provider.stage}
     MAILS_SEND_DATE_INDEX: SendDateIndex
-    ATTACHMENT_S3_BUCKET: vanchien99-project5-${self:provider.stage}
+    ATTACHMENT_S3_BUCKET: project5-mail-attachment-${self:provider.stage}
     SIGNED_URL_EXPIRATION: 300
     JWKS_ENDPOINT_URL: https://dev-d9yy841o.us.auth0.com/.well-known/jwks.json
     FROM_EMAIL_ADDRESS: nguyenvanchien9499@gmail.com
@@ -64,11 +64,53 @@ functions:
           - "xray:PutTelemetryRecords"
         Resource:
           - "*"
+  SearchMails:
+    handler: src/lambda/http/searchMails.handler
+    events:
+      - http:
+          method: get
+          path: mail-items/search
+          cors: true
+          authorizer: Auth
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - dynamodb:Query
+        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.MAILS_TABLE}
+      - Effect: "Allow"
+        Action:
+          - "xray:PutTraceSegments"
+          - "xray:PutTelemetryRecords"
+        Resource:
+          - "*"
+  UpdateMail:
+    handler: src/lambda/http/updateMail.handler
+    events:
+      - http:
+          method: patch
+          cors: true
+          authorizer: Auth
+          path: mail-items/{itemId}
+          request:
+            schemas:
+              application/json: ${file(models/update-mail-model.json)}
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - dynamodb:GetItem
+          - dynamodb:UpdateItem
+        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.MAILS_TABLE}
+      - Effect: "Allow"
+        Action:
+          - "xray:PutTraceSegments"
+          - "xray:PutTelemetryRecords"
+        Resource:
+          - "*"
 
   SendMails:
     handler: src/lambda/cron-job/sendMail.handler
     events:
-         - schedule: rate(2 minutes)
+         - schedule: rate(3 minutes)
     iamRoleStatements:
       - Effect: Allow
         Action:
@@ -118,6 +160,11 @@ functions:
         Action:
           - ses:VerifyEmailAddress
         Resource: "*"
+      - Effect: Allow
+        Action:
+          - s3:PutObject
+          - s3:GetObject
+        Resource: arn:aws:s3:::${self:provider.environment.ATTACHMENT_S3_BUCKET}/*
 
   # TODO: Configure this function
   # Provide property for setting up CORS, Authorizer, iamRoleStatements
@@ -134,6 +181,25 @@ functions:
         Action:
           - dynamodb:GetItem
           - dynamodb:DeleteItem
+        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.MAILS_TABLE}
+      - Effect: "Allow"
+        Action:
+          - "xray:PutTraceSegments"
+          - "xray:PutTelemetryRecords"
+        Resource:
+          - "*"
+  GetMailById:
+    handler: src/lambda/http/getMailById.handler
+    events:
+      - http:
+          method: get
+          cors: true
+          authorizer: Auth
+          path: mail-items/{itemId}
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - dynamodb:GetItem
         Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.MAILS_TABLE}
       - Effect: "Allow"
         Action:

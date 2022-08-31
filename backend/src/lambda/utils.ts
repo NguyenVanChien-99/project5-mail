@@ -1,6 +1,5 @@
 import { APIGatewayProxyEvent } from "aws-lambda";
 import { parseUserId } from "../auth/utils";
-
 /**
  * Get a user id from an API Gateway event
  * @param event an event from API Gateway

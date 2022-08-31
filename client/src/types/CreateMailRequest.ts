@@ -1,4 +1,3 @@
-
 export interface CreateMailItemRequest {
   title: string
   content: string

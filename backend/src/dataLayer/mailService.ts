@@ -1,6 +1,7 @@
 import * as AWS from 'aws-sdk'
 import * as AWSXRay from 'aws-xray-sdk'
 import { createLogger } from '../utils/logger'
+import mailcomposer from 'mailcomposer';
 
 const XAWS = AWSXRay.captureAWS(AWS)
 
@@ -13,7 +14,32 @@ const FROM_EMAIL = process.env.FROM_EMAIL_ADDRESS
 
 const logger = createLogger(`mailService`)
 
-export const sendEmail = async (to: string, subject: string, message: string) => {
+export const sendEmail = async (to: string, subject: string, message: string, attachmentURL: string, attachment: boolean) => {
+    if (attachment) {
+        const mail = mailcomposer({
+            from: FROM_EMAIL,
+            to: to,
+            subject: subject,
+            text: message,
+            attachments: [
+                {
+                    path: attachmentURL
+                },
+            ],
+        });
+        
+        mail.build((err:any, messageData:any) => {
+            if (err) {
+              logger.error(`Error sending raw email: ${err}`);
+              throw new Error(`Error sending raw email: ${err}`)
+            }
+            ses.sendRawEmail({RawMessage: {Data: messageData}}).promise();
+            logger.info(`Sendddd....`)
+        });
+        return
+    }
+
+
     const params = {
         Destination: {
             ToAddresses: [to]
@@ -44,7 +70,7 @@ export const sendEmail = async (to: string, subject: string, message: string) =>
 
 
 export const verifyEmailAddress = async (email: string) => {
-    const res= await ses.verifyEmailAddress({
+    const res = await ses.verifyEmailAddress({
         EmailAddress: email
     }).promise();
 

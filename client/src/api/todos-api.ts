@@ -1,8 +1,8 @@
 import { apiEndpoint } from '../config'
 import { MailItem } from '../types/Mail';
-import { CreateTodoRequest } from '../types/CreateTodoRequest';
+import { CreateMailItemRequest } from '../types/CreateMailRequest';
 import Axios from 'axios'
-import { UpdateTodoRequest } from '../types/UpdateTodoRequest';
+import { UpdateMailRequest } from '../types/UpdateMailRequest';
 
 export async function getAllMail(idToken: string): Promise<MailItem[]> {
   console.log('Fetching todos')
@@ -17,11 +17,37 @@ export async function getAllMail(idToken: string): Promise<MailItem[]> {
   return response.data.items
 }
 
-export async function createTodo(
+export async function searchItems(idToken: string,keyword:string): Promise<MailItem[]> {
+  console.log('Fetching todos')
+
+  const response = await Axios.get(`${apiEndpoint}/mail-items/search?keyword=${keyword}`, {
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${idToken}`
+    },
+  })
+  console.log('Todos:', response.data)
+  return response.data.items
+}
+
+export async function getItemById(idToken: string,itemId:string): Promise<MailItem> {
+  console.log('Fetching todos')
+
+  const response = await Axios.get(`${apiEndpoint}/mail-items/${itemId}`, {
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${idToken}`
+    },
+  })
+  console.log('Todos:', response.data)
+  return response.data.item
+}
+
+export async function createMailItem(
   idToken: string,
-  newTodo: CreateTodoRequest
+  newTodo: CreateMailItemRequest
 ): Promise<MailItem> {
-  const response = await Axios.post(`${apiEndpoint}/todos`,  JSON.stringify(newTodo), {
+  const response = await Axios.post(`${apiEndpoint}/mail-items`,  JSON.stringify(newTodo), {
     headers: {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${idToken}`
@@ -30,12 +56,12 @@ export async function createTodo(
   return response.data.item
 }
 
-export async function patchTodo(
+export async function patchMailItem(
   idToken: string,
-  todoId: string,
-  updatedTodo: UpdateTodoRequest
+  itemId: string,
+  updated: UpdateMailRequest
 ): Promise<void> {
-  await Axios.patch(`${apiEndpoint}/todos/${todoId}`, JSON.stringify(updatedTodo), {
+  await Axios.patch(`${apiEndpoint}/mail-items/${itemId}`, JSON.stringify(updated), {
     headers: {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${idToken}`
@@ -43,11 +69,11 @@ export async function patchTodo(
   })
 }
 
-export async function deleteTodo(
+export async function deleteMailItem(
   idToken: string,
-  todoId: string
+  itemId: string
 ): Promise<void> {
-  await Axios.delete(`${apiEndpoint}/todos/${todoId}`, {
+  await Axios.delete(`${apiEndpoint}/mail-items/${itemId}`, {
     headers: {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${idToken}`
@@ -55,18 +81,6 @@ export async function deleteTodo(
   })
 }
 
-export async function getUploadUrl(
-  idToken: string,
-  todoId: string
-): Promise<string> {
-  const response = await Axios.post(`${apiEndpoint}/todos/${todoId}/attachment`, '', {
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${idToken}`
-    }
-  })
-  return response.data.uploadUrl
-}
 
 export async function uploadFile(uploadUrl: string, file: Buffer): Promise<void> {
   await Axios.put(uploadUrl, file)
